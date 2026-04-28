@@ -96,6 +96,11 @@ def main(
         fuzzy_threshold=fuzzy_threshold,
     )
 
+    if mode == "hash" and fuzzy_threshold != 0.8:
+        click.echo("提示：--fuzzy-threshold 参数仅在 fuzzy 模式下生效，当前模式为 hash，该参数将被忽略")
+    if mode == "fuzzy" and hash_algorithm != "sha256":
+        click.echo("提示：--hash-algorithm 参数仅在 hash 模式下生效，当前模式为 fuzzy，该参数将被忽略")
+
     if verbose:
         click.echo(f"扫描模式: {mode}")
         click.echo(f"扫描目录: {', '.join(directories)}")
@@ -109,6 +114,10 @@ def main(
 
     click.echo("正在扫描文件...")
     duplicates = deduper.find_duplicates()
+
+    if deduper.skipped_directories:
+        for skipped_dir in deduper.skipped_directories:
+            click.echo(f"警告：路径 '{skipped_dir}' 不存在或不是目录，已跳过")
 
     total_groups = len(duplicates)
     total_files = sum(len(files) for files in duplicates.values())

@@ -24,6 +24,7 @@ class FileDeduper:
         self.hash_algorithm = hash_algorithm
         self.fuzzy_threshold = fuzzy_threshold
         self.duplicates: Dict[str, List[Dict]] = {}
+        self.skipped_directories: List[str] = []
 
     def calculate_file_hash(self, file_path: Path) -> str:
         hash_func = hashlib.new(self.hash_algorithm)
@@ -54,8 +55,13 @@ class FileDeduper:
 
     def collect_files(self) -> List[Path]:
         files = []
+        self.skipped_directories = []
         for directory in self.directories:
-            if not directory.exists() or not directory.is_dir():
+            if not directory.exists():
+                self.skipped_directories.append(str(directory))
+                continue
+            if not directory.is_dir():
+                self.skipped_directories.append(str(directory))
                 continue
 
             for root, dirs, filenames in os.walk(directory):

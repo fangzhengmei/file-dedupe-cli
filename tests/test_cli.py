@@ -145,3 +145,71 @@ class TestCli:
         )
         assert result_low.exit_code != 0
         assert "0.0" in result_low.output or "range" in result_low.output.lower()
+
+    def test_skipped_directory_warning(self, runner, temp_dir):
+        existing_dir = temp_dir / "existing"
+        existing_dir.mkdir()
+        (existing_dir / "file.txt").write_text("content")
+
+        nonexistent_dir = temp_dir / "nonexistent"
+
+        result = runner.invoke(
+            main,
+            [str(existing_dir), str(nonexistent_dir)],
+        )
+
+        assert result.exit_code == 0
+        assert "警告" in result.output
+        assert "不存在" in result.output
+        assert str(nonexistent_dir) in result.output
+
+    def test_file_path_skipped(self, runner, temp_dir):
+        existing_file = temp_dir / "not_a_dir.txt"
+        existing_file.write_text("content")
+
+        result = runner.invoke(
+            main,
+            [str(existing_file)],
+        )
+
+        assert result.exit_code == 0
+        assert "警告" in result.output
+        assert "不是目录" in result.output
+        assert str(existing_file) in result.output
+
+    def test_cross_mode_fuzzy_threshold_in_hash_mode(self, runner, test_files):
+        result = runner.invoke(
+            main,
+            [str(test_files), "--mode", "hash", "--fuzzy-threshold", "0.9"],
+        )
+
+        assert result.exit_code == 0
+        assert "--fuzzy-threshold" in result.output
+        assert "fuzzy 模式下生效" in result.output
+        assert "hash" in result.output
+
+    def test_cross_mode_hash_algorithm_in_fuzzy_mode(self, runner, fuzzy_test_files):
+        result = runner.invoke(
+            main,
+            [str(fuzzy_test_files), "--mode", "fuzzy", "--hash-algorithm", "md5"],
+        )
+
+        assert result.exit_code == 0
+        assert "--hash-algorithm" in result.output
+        assert "hash 模式下生效" in result.output
+        assert "fuzzy" in result.output
+
+    def test_default_values_no_cross_warning(self, runner, test_files):
+        result1 = runner.invoke(
+            main,
+            [str(test_files), "--mode", "hash"],
+        )
+        assert result1.exit_code == 0
+        assert "--fuzzy-threshold" not in result1.output
+
+        result2 = runner.invoke(
+            main,
+            [str(test_files), "--mode", "fuzzy"],
+        )
+        assert result2.exit_code == 0
+        assert "--hash-algorithm" not in result2.output
