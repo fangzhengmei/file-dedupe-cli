@@ -1,7 +1,7 @@
 import hashlib
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 
@@ -29,7 +29,12 @@ class FileDeduper:
 
     @staticmethod
     def _timestamp_to_iso8601(timestamp: float) -> str:
-        return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%dT%H:%M:%S")
+        dt = datetime.fromtimestamp(timestamp, tz=timezone.utc).astimezone()
+        offset = dt.strftime("%z")
+        if offset:
+            offset_formatted = f"{offset[:3]}:{offset[3:]}"
+            return dt.strftime("%Y-%m-%dT%H:%M:%S") + offset_formatted
+        return dt.strftime("%Y-%m-%dT%H:%M:%S")
 
     def calculate_file_hash(self, file_path: Path) -> str:
         hash_func = hashlib.new(self.hash_algorithm)
@@ -229,6 +234,10 @@ class FileDeduper:
         json_str = json.dumps(report, indent=2, ensure_ascii=False)
 
         if output_path:
+            output_path_obj = Path(output_path)
+            parent_dir = output_path_obj.parent
+            if parent_dir and not parent_dir.exists():
+                raise FileNotFoundError(f"输出目录不存在: {parent_dir}")
             with open(output_path, "w", encoding="utf-8") as f:
                 f.write(json_str)
 

@@ -169,7 +169,7 @@ class TestFileDeduper:
         deduper = FileDeduper(directories=[test_files], mode="hash")
         duplicates = deduper.find_duplicates()
 
-        iso8601_pattern = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$")
+        iso8601_pattern = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$")
 
         for group_key, files in duplicates.items():
             for file_info in files:
@@ -183,7 +183,7 @@ class TestFileDeduper:
         )
         duplicates = deduper.find_duplicates()
 
-        iso8601_pattern = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$")
+        iso8601_pattern = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$")
 
         for group_key, files in duplicates.items():
             for file_info in files:
@@ -211,5 +211,18 @@ class TestFileDeduper:
         result = FileDeduper._timestamp_to_iso8601(timestamp)
 
         assert isinstance(result, str)
-        iso8601_pattern = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$")
+        iso8601_pattern = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$")
         assert iso8601_pattern.match(result) is not None
+
+    def test_generate_json_report_parent_dir_not_exists(self, test_files):
+        deduper = FileDeduper(directories=[test_files], mode="hash")
+        deduper.find_duplicates()
+
+        nonexistent_path = "/nonexistent/directory/report.json"
+
+        try:
+            deduper.generate_json_report(output_path=nonexistent_path)
+            assert False, "Should have raised FileNotFoundError"
+        except FileNotFoundError as e:
+            assert "输出目录不存在" in str(e)
+            assert "nonexistent" in str(e)

@@ -213,3 +213,30 @@ class TestCli:
         )
         assert result2.exit_code == 0
         assert "--hash-algorithm" not in result2.output
+
+    def test_output_parent_dir_not_exists_cli(self, runner, test_files, temp_dir):
+        nonexistent_dir = temp_dir / "nonexistent"
+        output_path = str(nonexistent_dir / "report.json")
+
+        result = runner.invoke(
+            main,
+            [str(test_files), "--output", output_path],
+        )
+
+        assert result.exit_code == 0
+        assert "错误" in result.output or "错误：输出目录不存在" in result.output
+        assert "nonexistent" in result.output
+
+    def test_output_parent_dir_exists_cli(self, runner, test_files, temp_dir):
+        existing_dir = temp_dir / "reports"
+        existing_dir.mkdir()
+        output_path = str(existing_dir / "report.json")
+
+        result = runner.invoke(
+            main,
+            [str(test_files), "--output", output_path],
+        )
+
+        assert result.exit_code == 0
+        assert "错误" not in result.output
+        assert "JSON 报告已保存到" in result.output

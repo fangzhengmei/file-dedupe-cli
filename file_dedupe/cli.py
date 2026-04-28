@@ -135,8 +135,13 @@ def main(
         click.echo("")
 
     if output:
-        json_report = deduper.generate_json_report(output_path=output)
-        click.echo(f"JSON 报告已保存到: {output}")
+        try:
+            json_report = deduper.generate_json_report(output_path=output)
+            click.echo(f"JSON 报告已保存到: {output}")
+        except FileNotFoundError as e:
+            click.echo(f"错误：{e}", err=True)
+        except (IOError, OSError, PermissionError) as e:
+            click.echo(f"错误：无法写入报告文件 - {e}", err=True)
     else:
         json_report = deduper.generate_json_report()
         if verbose:
