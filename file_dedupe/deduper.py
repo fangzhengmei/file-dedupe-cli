@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 
@@ -26,6 +27,10 @@ class FileDeduper:
         self.duplicates: Dict[str, List[Dict]] = {}
         self.skipped_directories: List[str] = []
 
+    @staticmethod
+    def _timestamp_to_iso8601(timestamp: float) -> str:
+        return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%dT%H:%M:%S")
+
     def calculate_file_hash(self, file_path: Path) -> str:
         hash_func = hashlib.new(self.hash_algorithm)
         with open(file_path, "rb") as f:
@@ -34,10 +39,6 @@ class FileDeduper:
         return hash_func.hexdigest()
 
     def should_include_file(self, file_path: Path) -> bool:
-        for exclude_dir in self.exclude_dirs:
-            if exclude_dir in [p.name for p in file_path.parents]:
-                return False
-
         if self.include_glob:
             matched = False
             for pattern in self.include_glob:
@@ -63,6 +64,14 @@ class FileDeduper:
             if not directory.is_dir():
                 self.skipped_directories.append(str(directory))
                 continue
+
+            if self.exclude_dirs:
+                root_path = Path(directory)
+                root_ancestor_names = {p.name for p in root_path.parents}
+                root_ancestor_names.add(root_path.name)
+                if self.exclude_dirs & root_ancestor_names:
+                    self.skipped_directories.append(str(directory))
+                    continue
 
             for root, dirs, filenames in os.walk(directory):
                 dirs[:] = [d for d in dirs if d not in self.exclude_dirs]
@@ -96,7 +105,7 @@ class FileDeduper:
                             {
                                 "path": str(f.absolute()),
                                 "size": stat_info.st_size,
-                                "modified": stat_info.st_mtime,
+                                "modified": self._timestamp_to_iso8601(stat_info.st_mtime),
                             }
                         )
                     except (IOError, OSError, PermissionError):
@@ -147,7 +156,7 @@ class FileDeduper:
                         "path": file_path,
                         "name": file_path.name,
                         "size": stat_info.st_size,
-                        "modified": stat_info.st_mtime,
+                        "modified": self._timestamp_to_iso8601(stat_info.st_mtime),
                     }
                 )
             except (IOError, OSError, PermissionError):

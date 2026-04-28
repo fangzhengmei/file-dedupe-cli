@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 
 from file_dedupe.deduper import FileDeduper
@@ -163,3 +164,52 @@ class TestFileDeduper:
             assert False, "Should have raised ValueError"
         except ValueError as e:
             assert "Unknown mode" in str(e)
+
+    def test_modified_field_iso8601_format_hash_mode(self, test_files):
+        deduper = FileDeduper(directories=[test_files], mode="hash")
+        duplicates = deduper.find_duplicates()
+
+        iso8601_pattern = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$")
+
+        for group_key, files in duplicates.items():
+            for file_info in files:
+                modified = file_info["modified"]
+                assert isinstance(modified, str)
+                assert iso8601_pattern.match(modified) is not None
+
+    def test_modified_field_iso8601_format_fuzzy_mode(self, fuzzy_test_files):
+        deduper = FileDeduper(
+            directories=[fuzzy_test_files], mode="fuzzy", fuzzy_threshold=0.7
+        )
+        duplicates = deduper.find_duplicates()
+
+        iso8601_pattern = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$")
+
+        for group_key, files in duplicates.items():
+            for file_info in files:
+                modified = file_info["modified"]
+                assert isinstance(modified, str)
+                assert iso8601_pattern.match(modified) is not None
+
+    def test_exclude_root_directory_by_name(self, temp_dir):
+        exclude_dir = temp_dir / "exclude_me"
+        exclude_dir.mkdir()
+        (exclude_dir / "file.txt").write_text("content")
+
+        deduper = FileDeduper(
+            directories=[str(exclude_dir)],
+            exclude_dirs=["exclude_me"],
+            mode="hash",
+        )
+        files = deduper.collect_files()
+
+        assert len(files) == 0
+        assert str(exclude_dir) in deduper.skipped_directories
+
+    def test_timestamp_to_iso8601_static_method(self):
+        timestamp = 1714316880.0
+        result = FileDeduper._timestamp_to_iso8601(timestamp)
+
+        assert isinstance(result, str)
+        iso8601_pattern = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$")
+        assert iso8601_pattern.match(result) is not None
