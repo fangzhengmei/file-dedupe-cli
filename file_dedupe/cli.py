@@ -22,7 +22,7 @@ from .deduper import FileDeduper
 @click.option(
     "--fuzzy-threshold",
     "-t",
-    type=float,
+    type=click.FloatRange(0.0, 1.0),
     default=0.8,
     help="模糊匹配相似度阈值（0.0-1.0，仅适用于 fuzzy 模式）",
 )

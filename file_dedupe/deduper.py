@@ -1,9 +1,8 @@
 import hashlib
 import json
 import os
-import re
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set
 
 
 class FileDeduper:
@@ -34,9 +33,6 @@ class FileDeduper:
         return hash_func.hexdigest()
 
     def should_include_file(self, file_path: Path) -> bool:
-        file_name = file_path.name
-        file_str = str(file_path)
-
         for exclude_dir in self.exclude_dirs:
             if exclude_dir in [p.name for p in file_path.parents]:
                 return False
@@ -86,14 +82,21 @@ class FileDeduper:
         duplicates = {}
         for file_hash, file_list in hash_groups.items():
             if len(file_list) > 1:
-                duplicates[file_hash] = [
-                    {
-                        "path": str(f.absolute()),
-                        "size": f.stat().st_size,
-                        "modified": f.stat().st_mtime,
-                    }
-                    for f in file_list
-                ]
+                file_infos = []
+                for f in file_list:
+                    try:
+                        stat_info = f.stat()
+                        file_infos.append(
+                            {
+                                "path": str(f.absolute()),
+                                "size": stat_info.st_size,
+                                "modified": stat_info.st_mtime,
+                            }
+                        )
+                    except (IOError, OSError, PermissionError):
+                        continue
+                if len(file_infos) > 1:
+                    duplicates[file_hash] = file_infos
 
         self.duplicates = duplicates
         return duplicates
@@ -132,12 +135,13 @@ class FileDeduper:
 
         for file_path in files:
             try:
+                stat_info = file_path.stat()
                 file_infos.append(
                     {
                         "path": file_path,
                         "name": file_path.name,
-                        "size": file_path.stat().st_size,
-                        "modified": file_path.stat().st_mtime,
+                        "size": stat_info.st_size,
+                        "modified": stat_info.st_mtime,
                     }
                 )
             except (IOError, OSError, PermissionError):

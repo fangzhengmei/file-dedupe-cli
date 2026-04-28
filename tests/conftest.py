@@ -24,8 +24,8 @@ def test_files(temp_dir):
 def fuzzy_test_files(temp_dir):
     (temp_dir / "document_v1.txt").write_text("Content 1")
     (temp_dir / "document_v2.txt").write_text("Content 2")
-    (temp_dir / "report_final.txt").write_text("Content 3")
-    (temp_dir / "report_v1.txt").write_text("Content 4")
+    (temp_dir / "report_v1.txt").write_text("Content 3")
+    (temp_dir / "report_v2.txt").write_text("Content 4")
     (temp_dir / "unique_file.txt").write_text("Content 5")
     yield temp_dir
 

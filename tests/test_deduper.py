@@ -87,7 +87,8 @@ class TestFileDeduper:
             elif "report" in str(paths[0]):
                 report_paths = paths
 
-        assert len(document_paths) == 2 or len(report_paths) == 2
+        assert len(document_paths) == 2
+        assert len(report_paths) == 2
 
     def test_should_include_file_include_glob(self, test_files):
         deduper = FileDeduper(

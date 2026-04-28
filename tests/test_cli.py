@@ -130,3 +130,18 @@ class TestCli:
 
         assert result.exit_code != 0
         assert "is not one of" in result.output
+
+    def test_fuzzy_threshold_out_of_range(self, runner, test_files):
+        result_high = runner.invoke(
+            main,
+            [str(test_files), "--mode", "fuzzy", "--fuzzy-threshold", "1.5"],
+        )
+        assert result_high.exit_code != 0
+        assert "1.0" in result_high.output or "range" in result_high.output.lower()
+
+        result_low = runner.invoke(
+            main,
+            [str(test_files), "--mode", "fuzzy", "--fuzzy-threshold", "-0.1"],
+        )
+        assert result_low.exit_code != 0
+        assert "0.0" in result_low.output or "range" in result_low.output.lower()
